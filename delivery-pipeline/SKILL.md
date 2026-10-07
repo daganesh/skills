@@ -35,6 +35,27 @@ This mirrors the process this skill was extracted from: `docs/mico-implementatio
 4. **Make sure `git`/`gh` are authenticated** and `git config http.version HTTP/1.1` plus a
    reasonable `http.postBuffer` are set if pushes have been flaky — a known failure mode is an
    HTTP/2 push truncation that looks like an auth error but isn't.
+5. **Inventory the repo's actual test setup** before writing any agent prompt: which test levels
+   below it already has real tooling for (unit framework, component/integration harness, a smoke
+   check, a system/CLI-driven suite, an e2e framework like Playwright/Cypress), where each kind of
+   test file lives, the exact commands CI runs for each, and the repo's own coverage/quality bar if
+   it documents one (mico's review-gate checklist is one example — use the repo's own if it has
+   one, don't substitute a generic bar for a documented one). This inventory is what you'll fill
+   into every `<...>` placeholder about tests in the templates below — don't leave them generic
+   when the repo already answers them.
+
+## Test levels (shared vocabulary)
+
+Every phase below (planning, implementing, reviewing) refers to these by name. Not every task
+needs every level — the point is to *decide* which apply, not skip silently:
+
+| Level | Tests | Typical scope |
+|---|---|---|
+| **Unit** | a single function/class in isolation; collaborators faked/mocked | almost every task with any logic in it |
+| **Component / integration** | a module or service boundary, with cheap real collaborators where practical (e.g. an in-memory fake store instead of a real DB) — still fast, still offline | a task that introduces or changes a module boundary, a port/ABC implementation, a service class |
+| **Smoke** | does the entrypoint even come up and respond at all (a CLI command runs with `--help`/a trivial invocation, a server boots and answers one request) | any new CLI command, API route, worker entrypoint, or script |
+| **System** | cross-module behavior exercised through the real application wiring, still inside the test process/sandbox (no real browser, no real network) | a task whose correctness depends on several modules working together, not just one in isolation |
+| **E2E** | the full external-facing flow through the real interface — real browser automation, a real CLI subprocess invocation, a request against a real (test) server | a task that changes or adds a user-facing flow (UI, CLI command a user types, a public API) |
 
 ## Identifying complex tasks (for the planner)
 
@@ -107,6 +128,11 @@ Everything else, the implementer can scope and build on its own judgment.
   (mico's `review-gate` had a structured-output bug and was explicitly made non-blocking) — know
   which checks on this repo are like that *before* telling the reviewer what "green" means, don't
   guess.
+- **Green CI with vacuous tests is not "done."** A passing test suite only means something if the
+  tests themselves would fail on a real regression — tests written after the fact to match
+  whatever the code already does, or asserting against a mock of the exact thing under test, pass
+  trivially and prove nothing. This is why the reviewer template includes an explicit
+  vacuous-test check and a red-green spot check, not just "make sure tests exist."
 
 ---
 
@@ -135,13 +161,21 @@ already merged, so plans match real interfaces and conventions, not guessed ones
 Produce plans for these tasks, in dependency order: <list of task IDs/names judged complex>.
 Also flag any other task you judge complex enough to need a plan, with a one-line reason.
 
-For each plan give: goal and exact acceptance criteria; files/modules to create or change (real
-paths, matching this repo's layering/module conventions); key class/function signatures; data
-model/schema/migration details if relevant; ordering of sub-steps; edge cases and failure modes;
-test plan (what must have failing-case coverage, not just happy-path); risks, open questions, and
-the reasonable default decision for each (state it, don't leave it open); and how to split into
-smaller PRs if the task is too large for one. Be concrete and grounded in the actual code, not
-generic. Return everything as one document with a section per task.
+For each plan, work TDD-style: express the goal and acceptance criteria **as tests first** —
+name the actual test cases (one line each: "test_X rejects Y when Z") that would prove the task
+done, derived directly from the acceptance criteria, before sketching the implementation that
+would satisfy them. Then give: files/modules to create or change (real paths, matching this
+repo's layering/module conventions); key class/function signatures; data model/schema/migration
+details if relevant; ordering of sub-steps; edge cases and failure modes (each must map to a named
+test case from your list, not just be mentioned in prose); which test levels apply from the
+shared taxonomy above and why the others don't (most tasks need unit + component; add smoke for a
+new entrypoint, system for cross-module behavior, e2e for a user-facing flow — don't default to
+unit-only out of habit); the actual test file paths/fixtures to add or extend, matching this
+repo's test layout; risks, open questions, and the reasonable default decision for each (state it,
+don't leave it open); and how to split into smaller PRs if the task is too large for one — a
+sub-PR boundary must still carry its own tests, not defer them to a later sub-PR. Be concrete and
+grounded in the actual code, not generic. Return everything as one document with a section per
+task.
 ```
 
 ### 2. Implementer
@@ -163,15 +197,39 @@ Loop over tasks from <task-source-doc>: read it, <architecture/requirements docs
    unmerged PR, either pick a different task or stack on that branch (prefer picking a different
    task, to avoid the stacking hazard below).
 2. Branch from origin/main as <branch naming convention, e.g. feat/<id>-<slug>>. For a task the
-   planner covered, follow its plan file at <path> and flag any deviation in the PR description.
-   For a task without a plan, make the reasonable call yourself and note it in the PR description.
-3. Implement with tests (match existing test style/coverage expectations), run the exact local
-   checks CI runs (<list: lint, typecheck, tests, layer-check, build, …> — find exact commands in
-   the CI workflow file or repo docs) and make them green.
-4. Commit (<this repo's commit message convention>), push with `git push -u origin HEAD`, open a
-   PR titled <this repo's PR title convention> with a summary and test plan. Use the attribution
-   lines from your system reminders for commits/PR bodies.
-5. Immediately move to the next task; do NOT wait for the reviewer.
+   planner covered, follow its plan file at <path> — including its named test cases and which test
+   levels apply — and flag any deviation in the PR description. For a task without a plan, work out
+   the same thing yourself before writing implementation code: name the test cases the acceptance
+   criteria imply, and which of unit/component/smoke/system/e2e (see the shared taxonomy) apply to
+   this task; note the reasoning in the PR description.
+3. Work test-first where practical: write a test (or its skeleton/assertions) for a unit of
+   behavior before or alongside the code that satisfies it, not after the fact as a rubber stamp
+   on code you already believe works. Implement every test level you identified in step 2 — not
+   just unit tests by default:
+   - **Unit**: every new function/class with real logic.
+   - **Component/integration**: every new module boundary or port/ABC implementation, against a
+     fake/in-memory collaborator if a real one is slow or external.
+   - **Smoke**: a new CLI command, API route, or entrypoint — at minimum, prove it starts and
+     responds without crashing.
+   - **System**: cross-module behavior the task introduces or changes, exercised through the
+     real wiring (not a single class in isolation).
+   - **E2E**: a user-facing flow the task adds or changes, through the real interface.
+   Cover the failure/edge cases named in the plan (or that you identified yourself), not just the
+   happy path — an untested failure path is exactly where a silent regression hides. Match this
+   repo's existing test style/location/naming conventions; run the exact local checks CI runs
+   (<list: lint, typecheck, tests, layer-check, build, …> — find exact commands in the CI workflow
+   file or repo docs) and make them green.
+4. Before committing, re-read your own tests with fresh eyes: does each one actually assert
+   something meaningful tied to the real behavior (not `assert True`, not asserting on a mock you
+   configured to return the expected value, not silently skipped/xfailed)? Would it fail if the
+   implementation were wrong? If you're not sure, temporarily break the implementation and confirm
+   the test catches it, then restore the fix — cheap insurance, especially for the test(s) covering
+   the task's core acceptance criterion.
+5. Commit (<this repo's commit message convention>), push with `git push -u origin HEAD`, open a
+   PR titled <this repo's PR title convention> with a summary and a test plan that lists what you
+   tested at which level and why (not just "added tests"). Use the attribution lines from your
+   system reminders for commits/PR bodies.
+6. Immediately move to the next task; do NOT wait for the reviewer.
 
 Constraints: max <N, default 3> of your PRs open-and-unmerged at once — if you hit that, stop and
 report. Never stack a new PR on another of your own unmerged branches once more than one is open
@@ -206,23 +264,46 @@ For each PR:
    Check: correctness, spec conformance, layer/module boundaries, security (secrets never
    logged/committed, injection-safe handling of untrusted input), no scope creep, and — the
    review-gate checklist this repo documents — <adapt from the repo's own CI/review-gate
-   criteria if it has one; otherwise default to>: requirements coverage, test coverage (every new
-   function/branch/public method has a corresponding test, including failing-case tests, not just
-   happy path), no duplicate logic, no magic numbers/hardcoded strings (named constants), correct
-   API shape for whatever interface/contract the task implements.
-2. Check out the PR branch in your own worktree and run the full local checks (same list as the
+   criteria if it has one; otherwise default to>: requirements coverage, no duplicate logic, no
+   magic numbers/hardcoded strings (named constants), correct API shape for whatever
+   interface/contract the task implements.
+2. **Verify the tests are actually implemented, not just claimed.** The PR description saying
+   "added tests" is not evidence — read the diff's test files directly:
+   - Every acceptance criterion / named test case from the plan (or the task's stated
+     requirements, if unplanned) has a real, corresponding test — not a TODO, not deferred to a
+     later PR, not silently dropped.
+   - Every test level identified as applicable (unit/component/smoke/system/e2e — see the shared
+     taxonomy) is actually present, not just unit tests when the task clearly also needed a smoke
+     or e2e test (a new CLI command with no smoke test, or a new user-facing flow with no e2e
+     test, is a missing-coverage finding, not a nice-to-have).
+   - Failure/edge cases are covered, not just the happy path.
+   - **No vacuous tests**: nothing that asserts a tautology, asserts against a mock configured to
+     return exactly what's being "checked", or is skipped/xfailed without a tracked reason. A test
+     that would pass even if the implementation were deleted is worse than no test — it's false
+     confidence.
+   - **Spot-check that tests are real, not just present**, especially for the task's core
+     acceptance criterion: run the test suite once as-is (should pass), then temporarily revert
+     just the implementation change (keep the tests) and re-run — the relevant test(s) should now
+     fail. Restore the implementation afterward. This "red-green" check is cheap and catches tests
+     that were written to match the code rather than to verify the requirement; you don't need to
+     do it for every single test in a large PR, but do it for whatever test covers the task's
+     central claim.
+   If coverage is missing or a test is vacuous, that's a blocking finding — fix it yourself (add or
+   correct the test) the same as any other bug, don't wave it through because CI is green.
+3. Check out the PR branch in your own worktree and run the full local checks (same list as the
    implementer's step 3).
-3. Check CI: all required jobs must be green. <name any known-flaky/non-blocking check for this
+4. Check CI: all required jobs must be green. <name any known-flaky/non-blocking check for this
    repo, e.g. "review-gate is known-flaky here (reason X) — its failure alone does not block
    merging; anything else red does.">
-4. Fix problems yourself: commit fixes to the PR branch and push (new commits, no force-push, no
+5. Fix problems yourself: commit fixes to the PR branch and push (new commits, no force-push, no
    `--no-verify`), then wait for CI to go green again. If the PR conflicts with main, merge
    origin/main into the branch and resolve. If a problem is a fundamental design flaw you cannot
    resolve confidently, leave a PR comment and do NOT merge — report it instead.
-5. Re-fetch and confirm the PR is still up to date with origin/main immediately before merging
-   (someone may have landed something in between). Post a brief review summary as a PR comment,
-   then merge with `gh pr merge <n> --squash --delete-branch` (adapt the merge style to this
-   repo's actual history — squash vs merge-commit).
+6. Re-fetch and confirm the PR is still up to date with origin/main immediately before merging
+   (someone may have landed something in between). Post a brief review summary as a PR comment —
+   including which test levels you verified and any red-green spot checks you ran — then merge
+   with `gh pr merge <n> --squash --delete-branch` (adapt the merge style to this repo's actual
+   history — squash vs merge-commit).
 
 Git/gh are authenticated as <user>. Use the attribution lines from your system reminders on
 commits. Final report when you do stop (under 200 words): per PR — merged / fixed what / blocked
