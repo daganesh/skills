@@ -57,6 +57,46 @@ needs every level — the point is to *decide* which apply, not skip silently:
 | **System** | cross-module behavior exercised through the real application wiring, still inside the test process/sandbox (no real browser, no real network) | a task whose correctness depends on several modules working together, not just one in isolation |
 | **E2E** | the full external-facing flow through the real interface — real browser automation, a real CLI subprocess invocation, a request against a real (test) server | a task that changes or adds a user-facing flow (UI, CLI command a user types, a public API) |
 
+## Coding best-practices checklist (shared vocabulary)
+
+The implementer should self-check a diff against this before opening a PR; the reviewer checks
+it independently (fresh eyes, don't just trust the implementer's self-check) before merging.
+Adapt to the repo's own documented standards where it has them (a style guide, a review-gate
+checklist, a linter config with opinions baked in) rather than overriding them with this generic
+list — this is the default when the repo doesn't already say.
+
+- **Interface-oriented encapsulation.** Code depends on the abstraction (the port/ABC/interface)
+  a module exposes, not its concrete internals; callers don't reach around a boundary to touch
+  what it hides. Layer boundaries this repo defines (e.g. a "don't import the data layer directly
+  from the UI layer" rule) are respected, not routed around for convenience.
+- **Code reuse — no duplication.** The same logic isn't copy-pasted into two places; shared
+  behavior is factored into one function/module both call. A near-duplicate found during review
+  is a finding, not a style nitpick — duplicated logic drifts.
+- **No magic numbers or magic strings.** Thresholds, limits, status strings, config keys, retry
+  counts, timeouts — anything that isn't self-evidently `0`, `1`, or `-1` — are named constants
+  (or config), not inline literals repeated across the diff.
+- **Simplicity.** No speculative generality (a plugin system/abstraction layer for a single
+  concrete use case), no premature optimization, no unused flexibility "for later." The simplest
+  design that satisfies the actual acceptance criteria wins; three similar lines beat a premature
+  abstraction.
+- **Readability.** Clear naming that says what something is, not how it's computed internally;
+  functions sized so a reader can hold one in their head; comments only where the *why* is
+  non-obvious (a workaround, an invariant, a subtle constraint) — not restating what the code
+  already says.
+- **Security.** Untrusted input validated at the boundary it enters, not assumed clean downstream;
+  no injection vectors (SQL built from string concatenation instead of parameters, shell commands
+  built from unescaped input, path traversal from an unvalidated file path); secrets/credentials
+  never logged, committed, or echoed in error messages; an API endpoint or CLI command enforces
+  whatever authn/authz/scoping the task's security model requires — not left open because the
+  happy-path test didn't need it.
+- **Error handling at boundaries.** Expected failures (bad input, a network call that can fail, a
+  missing file) are handled explicitly and reported usefully; they aren't silently swallowed
+  (`except: pass`), and an error isn't caught so broadly that a real bug gets misreported as the
+  expected failure case.
+- **Consistency.** Matches this repo's existing conventions (naming, file layout, error-handling
+  style, test style) rather than introducing a new pattern for the same problem the codebase
+  already solves one way.
+
 ## Identifying complex tasks (for the planner)
 
 Not every task needs a plan. Send a task to the planner first when it's one or more of:
@@ -225,11 +265,18 @@ Loop over tasks from <task-source-doc>: read it, <architecture/requirements docs
    implementation were wrong? If you're not sure, temporarily break the implementation and confirm
    the test catches it, then restore the fix — cheap insurance, especially for the test(s) covering
    the task's core acceptance criterion.
-5. Commit (<this repo's commit message convention>), push with `git push -u origin HEAD`, open a
+5. Also self-check the diff against the shared coding best-practices checklist (interface-oriented
+   encapsulation, no duplicated logic, no magic numbers/strings, simplicity, readability, security
+   at any boundary the task touches, explicit error handling, consistency with existing
+   conventions) and against the task's actual stated requirements: implement everything asked, and
+   nothing materially beyond it — an unplanned refactor or unrelated file bundled into this PR
+   makes the reviewer's job harder and is likely to come back as a question; split it out or leave
+   it for its own task instead.
+6. Commit (<this repo's commit message convention>), push with `git push -u origin HEAD`, open a
    PR titled <this repo's PR title convention> with a summary and a test plan that lists what you
    tested at which level and why (not just "added tests"). Use the attribution lines from your
    system reminders for commits/PR bodies.
-6. Immediately move to the next task; do NOT wait for the reviewer.
+7. Immediately move to the next task; do NOT wait for the reviewer.
 
 Constraints: max <N, default 3> of your PRs open-and-unmerged at once — if you hit that, stop and
 report. Never stack a new PR on another of your own unmerged branches once more than one is open
@@ -259,15 +306,32 @@ rather than ending early. Stop and report only after a generous number of empty 
 fully merged).
 
 For each PR:
-1. Review with fresh eyes against <task-source-doc>'s entry for that task, <architecture/
-   requirements docs>, repo conventions, and a plan file at <path> if that task was planned.
-   Check: correctness, spec conformance, layer/module boundaries, security (secrets never
-   logged/committed, injection-safe handling of untrusted input), no scope creep, and — the
-   review-gate checklist this repo documents — <adapt from the repo's own CI/review-gate
-   criteria if it has one; otherwise default to>: requirements coverage, no duplicate logic, no
-   magic numbers/hardcoded strings (named constants), correct API shape for whatever
-   interface/contract the task implements.
-2. **Verify the tests are actually implemented, not just claimed.** The PR description saying
+1. **Verify every requirement is actually implemented — exhaustively, not a spot check.** Go
+   through the task's full requirement list (the plan's named acceptance criteria if it was
+   planned, otherwise the task source entry and any linked PRD/AD section) item by item and
+   confirm each one is really there in the diff, not just plausible-sounding. A requirement that's
+   silently missing, partially done, or stubbed is a blocking finding — "mostly implements the
+   task" is not done.
+2. **Flag anything in the diff that wasn't required or planned.** Compare the diff's actual
+   footprint (files touched, behavior changed) against what the task asked for. A change outside
+   that scope — an unrelated refactor, a file touched that no requirement mentions, extra
+   behavior nobody asked for — doesn't automatically get reverted, but it does **not** get
+   silently accepted either: call it out explicitly in your review (comment on the PR, and name it
+   in your final report) and ask whether it was intentional, whether it belongs in this PR at all,
+   and whether it needs its own task/review. Scope creep that slips through unremarked is how an
+   agent pipeline quietly drifts from the plan.
+3. **Check the diff against the shared coding best-practices checklist**: interface-oriented
+   encapsulation (no reaching around a layer/ABC boundary), no duplicated logic, no magic
+   numbers/hardcoded strings (named constants/config), simplicity (no speculative generality),
+   readability (naming, function size, comments only where the *why* is non-obvious), security
+   (input validated at every boundary it crosses, no injection vectors, secrets never
+   logged/committed, authn/authz enforced where the task's security model requires it), explicit
+   error handling (no silently swallowed failures, no overly broad catches), and consistency with
+   this repo's existing conventions. Also check spec conformance against <architecture/
+   requirements docs> and correct API shape for whatever interface/contract the task implements —
+   adapt this whole check to the repo's own documented review-gate/style criteria if it has one,
+   rather than overriding it with this generic list.
+4. **Verify the tests are actually implemented, not just claimed.** The PR description saying
    "added tests" is not evidence — read the diff's test files directly:
    - Every acceptance criterion / named test case from the plan (or the task's stated
      requirements, if unplanned) has a real, corresponding test — not a TODO, not deferred to a
@@ -290,22 +354,24 @@ For each PR:
      central claim.
    If coverage is missing or a test is vacuous, that's a blocking finding — fix it yourself (add or
    correct the test) the same as any other bug, don't wave it through because CI is green.
-3. Check out the PR branch in your own worktree and run the full local checks (same list as the
+5. Check out the PR branch in your own worktree and run the full local checks (same list as the
    implementer's step 3).
-4. Check CI: all required jobs must be green. <name any known-flaky/non-blocking check for this
+6. Check CI: all required jobs must be green. <name any known-flaky/non-blocking check for this
    repo, e.g. "review-gate is known-flaky here (reason X) — its failure alone does not block
    merging; anything else red does.">
-5. Fix problems yourself: commit fixes to the PR branch and push (new commits, no force-push, no
+7. Fix problems yourself: commit fixes to the PR branch and push (new commits, no force-push, no
    `--no-verify`), then wait for CI to go green again. If the PR conflicts with main, merge
-   origin/main into the branch and resolve. If a problem is a fundamental design flaw you cannot
-   resolve confidently, leave a PR comment and do NOT merge — report it instead.
-6. Re-fetch and confirm the PR is still up to date with origin/main immediately before merging
+   origin/main into the branch and resolve. If a problem is a fundamental design flaw, missing
+   requirement, or unexplained out-of-scope change you cannot resolve confidently, leave a PR
+   comment and do NOT merge — report it instead.
+8. Re-fetch and confirm the PR is still up to date with origin/main immediately before merging
    (someone may have landed something in between). Post a brief review summary as a PR comment —
-   including which test levels you verified and any red-green spot checks you ran — then merge
-   with `gh pr merge <n> --squash --delete-branch` (adapt the merge style to this repo's actual
+   confirming every requirement was checked, naming any out-of-scope changes you flagged, and
+   which test levels/red-green spot checks you ran — then merge with
+   `gh pr merge <n> --squash --delete-branch` (adapt the merge style to this repo's actual
    history — squash vs merge-commit).
 
 Git/gh are authenticated as <user>. Use the attribution lines from your system reminders on
 commits. Final report when you do stop (under 200 words): per PR — merged / fixed what / blocked
-why.
+why / any out-of-scope changes you flagged and whether they were resolved.
 ```
