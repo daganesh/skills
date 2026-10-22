@@ -10,6 +10,7 @@ Reusable [Claude Code](https://claude.com/claude-code) skills. Each folder is on
 | [`create-knowledge-base`](create-knowledge-base/SKILL.md) | Sets up or refreshes a `.agents/` knowledge base so AI agents can orient in a repo without reading all the source. |
 | [`delivery-pipeline`](delivery-pipeline/SKILL.md) | Works through a task backlog with a planner, implementer and reviewer agent, one PR per task. |
 | [`project-design`](project-design/SKILL.md) | Takes a PRD and produces a detailed design plus implementation plan. Reviews the PRD, identifies the project type, lists the architecture decisions needed (platform, backend vs backendless, services, APIs, languages, data, auth, AI, testing, CI/CD), asks them one by one with a recommended option, then writes the design doc, decision log and task-table plan. Pre-loaded with recurring choices mined from past projects. |
+| [`review-tests`](review-tests/SKILL.md) | Reviews an existing backend/frontend test suite and turns the findings (redundant tests, tests at the wrong level, missing coverage, brittle tests) into a prioritized to-do list. Groups it into proposed PR requests and, after approval, opens one GitHub issue per request. Defines four levels: unit, component, multi-component (use-case) and e2e, and a "cheapest sufficient level" rule. |
 | [`usage-report`](usage-report/SKILL.md) | Estimates Claude Code spend and active hours per project from local session transcripts. |
 
 ## Installing
