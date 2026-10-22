@@ -16,6 +16,7 @@ Confirm the following with the user before making changes. Use sensible defaults
 5. **Depth** — Minimal (architecture + dev-environment + testing only, no dedicated component files) or full (topic files plus dedicated component files for the codebase's foundational classes/modules — recommended, and the default for any repo past trivial size)?
 6. **Existing docs** — Should existing `CLAUDE.md` / `AGENTS.md` / `.github/copilot-instructions.md` / `.cursor/rules` be replaced with pointers, or left untouched and merely referenced?
 7. **External documentation resources (optional)** — Are there authoritative docs outside the source tree that should inform the knowledge base? For example: a design system, architecture RFCs/ADRs, an API spec (OpenAPI/GraphQL), a style guide, product/PRD docs, or a runbook. Accept any of: a local path/folder, a URL, or a connected source (Notion, Confluence, Google Drive, etc. — use the matching MCP tool if available). Note which are the source of truth for their topic.
+8. **Test skills (notify, default on)** — Tell the user, as part of these setup questions (not only in the final summary), that the `testing.md` knowledge file and the `new-feature.md` / `write-test.md` workflows will reference two companion skills from the `daganesh/skills` collection: `plan-tests-for-change` (decides which tests a new feature or change needs, at which level and in which file) and `review-tests` (periodic global review that produces a prioritized to-do list and, after approval, GitHub issues). Check whether they are installed (`~/.claude/skills/<name>/` or `<repo>/.claude/skills/<name>/`). If either is missing, offer to install them now and ask where: user-level (`~/.claude/skills/`, all projects) or project-level (`<repo>/.claude/skills/`, shared with the team and committed with the knowledge base). Install only after the user says yes. To install, clone `https://github.com/daganesh/skills` (shallow, into a temporary folder) and copy the whole `review-tests/` and `plan-tests-for-change/` folders, including their `references/`, into the chosen location. Never overwrite an existing copy that differs without asking, and report exactly what was installed and where. If the user declines, continue and note it in the final message. The references are included by default; if the user opts out, skip the "Test skills" section (Step 4a) and the test-skill steps in Step 5.
 
 ### Agent → root pointer file
 
@@ -40,6 +41,7 @@ If `.agents/knowledge/` already exists, this is a verify-and-patch pass, not a r
 4. **Diff the component inventory.** Run the foundational-component identification (Step 1c below) and compare it against what already has a dedicated component file. Components newly grown into significance (more fan-in, more code) get a new file; components that shrank or were removed get their file trimmed or deleted; everything else just gets its facts re-verified.
 5. **Reconcile cross-links both ways.** When you add or rename a component file, update every topic file that should link to it, and make sure the component file links back to the topic files and sibling components it relates to (see "Cross-linking" in Step 4b). A component file with zero inbound links from topic files is a sign the graph is incomplete, not that the component is unimportant.
 6. **Update the README index** for anything added, renamed, or removed — stale index entries are worse than no index.
+7. **Add the test skills section if missing.** Unless the user opted out in Step 0 (question 8), make sure `knowledge/testing.md` has the "Test skills" section (Step 4a) and that `new-feature.md` / `write-test.md` reference the test skills (Step 5). Tell the user these references were added, and if the skills are not installed, offer to install them as in Step 0 (question 8).
 
 ## Structure to create
 
@@ -49,7 +51,7 @@ If `.agents/knowledge/` already exists, this is a verify-and-patch pass, not a r
 ├── knowledge/
 │   ├── architecture.md      ← repo structure, key entry points, core modules
 │   ├── dev-environment.md   ← build, run, test commands and gotchas
-│   ├── testing.md           ← test framework, where tests live, how to run
+│   ├── testing.md           ← test framework, where tests live, how to run, test skills
 │   ├── <topic>.md           ← repo-specific concept (api, auth, db, deploy, etc.)
 │   └── <component>.md       ← repo-specific foundational class/module (see Step 1c)
 └── skills/
@@ -123,8 +125,27 @@ Keep each file **20–60 lines**, focused, referencing real file paths from the 
 |------|-----------|
 | `architecture.md` | Directory structure, key entry points, core modules, external dependencies — and a link to each component file for anything named in the flow/entry-points list |
 | `dev-environment.md` | Prerequisites, env vars, how to install/run/build, common gotchas |
-| `testing.md` | Framework + version, where tests live, how to run (single test + full suite), required setup |
+| `testing.md` | Framework + version, where tests live, how to run (single test + full suite), required setup; plus the facts the test skills read (see below) |
 | `<topic>.md` | Repo-specific as needed (api, auth, db, state, build-system, deploy, ci, etc.) |
+
+**`testing.md` and the test skills.** Unless the user opted out (Step 0, question 8), `testing.md` ends with a "Test skills" section and also records what `plan-tests-for-change` and `review-tests` read from it, each as real values from the repo (no placeholders):
+
+- test levels in use (unit, component, multi-component/use-case, e2e): where each lives, its framework, and what is faked at that level
+- placement conventions for new tests (paths, naming, helpers/factories) and one canonical example test per level
+- the default budget of new tests per change, and the named critical e2e journeys, if any
+- CI stages, runtime budget, and known slow or flaky areas
+- a short baseline (date, commit, test counts per level, runtime, coverage), which `review-tests` refreshes
+
+The section itself reads, adapted to the repo:
+
+```markdown
+## Test skills
+- Adding or changing a feature: run `plan-tests-for-change` before writing tests. It lists the changed behaviors, checks existing coverage, and proposes which tests to add or extend, at which level and in which file, within a small budget. Put its plan in the PR description.
+- Periodic global review (suggested: once a quarter, and whenever CI time or flakiness grows): run `review-tests`. It produces a prioritized to-do list grouped into proposed PRs and, after approval, opens GitHub issues. It never edits code or tests itself.
+- Both skills read this file. Keep the levels, placement, policy and baseline above current.
+```
+
+If the skills are not installed (the user declined installation in Step 0), keep the section and add one line saying where they come from (the `daganesh/skills` collection) and that they must be copied into `~/.claude/skills/` or `.claude/skills/`. A starting layout for the facts above is in the `review-tests` skill (`references/testing-knowledge-template.md`).
 
 Topic files stay high-level: they describe *categories* and link out to component files for depth, rather than re-describing a component's methods inline (that description belongs in exactly one place — the component file — so it can't drift out of sync in two places).
 
@@ -147,6 +168,13 @@ For each survivor from Step 1c, create (or update) `knowledge/<component-kebab-c
 
 Each skill file: numbered steps, exact commands for *this* repo's tooling, minimal prose.
 Start with `bug-fix.md`, `new-feature.md`, `write-test.md`; add more (e.g. `release.md`, `migration.md`) if the repo's workflow warrants it.
+
+Unless the user opted out (Step 0, question 8), wire in the test skills, pointing to `knowledge/testing.md` instead of repeating its content:
+
+- `new-feature.md` gets a "Decide tests" step: run `plan-tests-for-change` on the feature or diff, and put its plan in the PR description.
+- `write-test.md` starts from that plan (what to test, at which level, in which file) and places tests per the conventions in `testing.md`.
+- `bug-fix.md` may add a regression test per the same plan, if the repo's bug-fix flow includes one.
+- Optionally, if the repo wants a recurring review, add a `review-tests.md` workflow that runs `review-tests` and states the cadence.
 
 ## Step 6 — Write root pointer files
 
@@ -180,6 +208,8 @@ git push -u origin feat/agent-knowledge-base
 
 If there is no remote or PR flow, stop after the commit.
 
+In the final message, state clearly that the test skills (`plan-tests-for-change`, `review-tests`) were referenced in `testing.md` and the workflows (or that the user opted out), and whether they are installed (and where, if installed during this run) or still need to be installed.
+
 ## Done when
 
 - [ ] Setup questions answered; scope, target agents, and fresh-vs-update mode confirmed
@@ -191,4 +221,5 @@ If there is no remote or PR flow, stop after the commit.
 - [ ] If updating an existing base: stale facts (paths, line numbers, renamed/removed methods) were corrected, not left in place; unchanged-and-accurate files were left alone rather than rewritten
 - [ ] Any external docs distilled (not copied), linked back, and provenance recorded
 - [ ] Skill files have numbered steps with exact, repo-correct commands
+- [ ] Test skills: the user was told about `plan-tests-for-change` and `review-tests` in Step 0; unless they opted out, `testing.md` has the "Test skills" section and the facts those skills read, `new-feature.md` / `write-test.md` reference them, and the final message says whether they are installed
 - [ ] (If applicable) changes committed / PR opened against the right branch
