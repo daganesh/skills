@@ -7,7 +7,7 @@ description: Keep the repo's list of manual tests (.agents/manual-tests.md) curr
 
 Goal: a single, git-tracked list of the behaviors that a human must check, kept accurate, and runnable by a human tester on request. The list lives in the repo at `.agents/manual-tests.md` so it survives sessions and is reviewed in PRs like any other file.
 
-Read first: `references/test-strategy.md` (risk levels, when a behavior is manual). Read the list itself before changing it.
+Read first: `../review-tests/references/test-strategy.md` (risk levels, when a behavior is manual). Read the list itself before changing it.
 
 ## The list
 
@@ -31,7 +31,7 @@ Each entry is a block with a stable ID that is never reused:
 ```
 
 Rules for entries:
-- Risk level is required (low, medium, high), defined in `references/test-strategy.md`.
+- Risk level is required (low, medium, high), defined in `../review-tests/references/test-strategy.md`.
 - Steps are concrete actions a person can follow without reading the code. Eight steps at most; split longer flows into two entries.
 - Each entry names one behavior. Never record a result inside the entry except in "Last run".
 
