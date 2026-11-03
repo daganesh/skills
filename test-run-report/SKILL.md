@@ -7,7 +7,7 @@ description: Run the repo's automated test suites, write a report for the run (r
 
 Goal: every test run leaves a report in git that a human can review, and that can be compared with earlier runs. The skill runs and records; the human decides whether the run is acceptable.
 
-Read first: `.agents/knowledge/testing.md` (exact commands per package and level, coverage command and report path, baseline), `references/test-strategy.md` (levels and risk levels). If `testing.md` is missing, derive the commands from the repo and ask before running anything long.
+Read first: `.agents/knowledge/testing.md` (exact commands per package and level, coverage command and report path, baseline), `../review-tests/references/test-strategy.md` (levels and risk levels). If `testing.md` is missing, derive the commands from the repo and ask before running anything long.
 
 ## Run
 
