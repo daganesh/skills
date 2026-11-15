@@ -10,7 +10,7 @@ Agents: start with [`.agents/README.md`](.agents/README.md), read a skill's `REA
 | Skill | What it does |
 |---|---|
 | [`project-design`](project-design/README.md) | PRD → design doc, decision log and task-table plan, via a one-decision-at-a-time interview. |
-| [`delivery-pipeline`](delivery-pipeline/README.md) | Works a task backlog with planner, implementer and reviewer agents, one PR per task. |
+| [`delivery-pipeline`](delivery-pipeline/README.md) | Works a task backlog with designer, test-builder, implementer and reviewer agents (tests and code built in parallel), one PR per task. |
 | [`create-feedback-form`](create-feedback-form/README.md) | Adds an in-app feedback / bug-report form with storage and delivery. |
 
 **Repo setup**

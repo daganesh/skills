@@ -3,7 +3,7 @@
 | Skill | Group | One line |
 |---|---|---|
 | [project-design](../../project-design/README.md) | build | PRD → design, decision log, task plan |
-| [delivery-pipeline](../../delivery-pipeline/README.md) | build | planner/implementer/reviewer agents work a task backlog |
+| [delivery-pipeline](../../delivery-pipeline/README.md) | build | designer / test-builder / implementer / reviewer agents work a task backlog |
 | [create-feedback-form](../../create-feedback-form/README.md) | build | in-app feedback form recipe |
 | [create-knowledge-base](../../create-knowledge-base/README.md) | repo setup | `.agents/` knowledge base for a repo |
 | [plan-tests-for-change](../../plan-tests-for-change/README.md) | testing | which tests a change needs |
