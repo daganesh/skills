@@ -70,4 +70,4 @@ The tail is real: a few multi-agent design/orchestration sessions cost $100–$3
   as new sessions accumulate.
 
 ---
-Not a skill (no `SKILL.md`): a standalone script. Companion to [`usage-report`](../usage-report/README.md) (actual spend); use it to budget work before [`delivery-pipeline`](../delivery-pipeline/README.md) runs a [`project-design`](../project-design/README.md) plan. Up: [skills index](../README.md)
+Not a skill (no `SKILL.md`): a standalone script. Companion to [`usage-report`](../plugins/usage/skills/usage-report/README.md) (actual spend); use it to budget work before [`delivery-pipeline`](../plugins/develop/skills/delivery-pipeline/README.md) runs a [`project-design`](../plugins/develop/skills/project-design/README.md) plan. Up: [skills index](../README.md)

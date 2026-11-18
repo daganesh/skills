@@ -13,7 +13,7 @@ an authoritative bill — see Caveats below.
 
 The script lives at `scripts/usage_report.py`, relative to this file. When this skill is
 invoked, the harness reports this directory's actual path (e.g. a "Base directory for this
-skill: ..." line, or an install under `~/.claude/skills/usage-report/`); run the script from
+skill: ..." line, an install under `~/.claude/skills/usage-report/`, or the plugin cache under `~/.claude/plugins/` when installed as the `usage` plugin); run the script from
 there with `Bash`:
 
 ```bash

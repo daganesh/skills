@@ -1,0 +1,9 @@
+{
+  "name": "usage",
+  "version": "0.1.0",
+  "description": "Usage reporting: spend and active hours per project from local Claude Code transcripts.",
+  "author": { "name": "daganesh" },
+  "homepage": "https://github.com/daganesh/skills",
+  "repository": "https://github.com/daganesh/skills",
+  "keywords": ["usage", "cost", "reporting"]
+}
