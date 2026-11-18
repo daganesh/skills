@@ -1,0 +1,25 @@
+{
+  "name": "daganesh-skills",
+  "description": "Claude Code skills for designing, delivering and testing software, and for tracking usage.",
+  "owner": { "name": "daganesh", "url": "https://github.com/daganesh" },
+  "plugins": [
+    {
+      "name": "develop",
+      "source": "./plugins/develop",
+      "description": "project-design, delivery-pipeline, create-feedback-form, create-knowledge-base",
+      "category": "development"
+    },
+    {
+      "name": "test",
+      "source": "./plugins/test",
+      "description": "plan-tests-for-change, review-tests, manual-tests, test-run-report",
+      "category": "testing"
+    },
+    {
+      "name": "usage",
+      "source": "./plugins/usage",
+      "description": "usage-report",
+      "category": "productivity"
+    }
+  ]
+}

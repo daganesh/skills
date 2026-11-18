@@ -1,0 +1,9 @@
+{
+  "name": "test",
+  "version": "0.1.0",
+  "description": "Testing lifecycle: plan tests for a change, review a suite, keep manual tests, report test runs.",
+  "author": { "name": "daganesh" },
+  "homepage": "https://github.com/daganesh/skills",
+  "repository": "https://github.com/daganesh/skills",
+  "keywords": ["testing", "test-plan", "test-review"]
+}

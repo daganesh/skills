@@ -1,0 +1,9 @@
+{
+  "name": "develop",
+  "version": "0.1.0",
+  "description": "Design and delivery: PRD to design and task plan, agent delivery pipeline, in-app feedback form, .agents/ knowledge base.",
+  "author": { "name": "daganesh" },
+  "homepage": "https://github.com/daganesh/skills",
+  "repository": "https://github.com/daganesh/skills",
+  "keywords": ["design", "delivery", "planning", "knowledge-base"]
+}
