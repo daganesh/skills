@@ -8,4 +8,4 @@ Maintains `.agents/manual-tests.md`: the git-tracked list of behaviors a human m
 - **Feeds:** [`test-run-report`](../test-run-report/README.md) lists high-risk or never-run entries as "manual tests due".
 - **Shared definitions:** risk levels in [`review-tests/references/test-strategy.md`](../review-tests/references/test-strategy.md).
 
-Entry point: [`SKILL.md`](SKILL.md) · Up: [skills index](../README.md)
+Entry point: [`SKILL.md`](SKILL.md) · Up: [skills index](../../../../README.md)
