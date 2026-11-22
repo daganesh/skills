@@ -11,7 +11,7 @@ effort-estimator/                 standalone script, in no plugin
 Skills are auto-discovered from `skills/`; installed, they are invoked as `/<family>:<skill>`.
 
 ## Versions
-Each `plugin.json` has its own semver `version` (started at 0.1.0). Bump it in the same change as any edit to that plugin's skills, or installed users will not get the update. Keep `version` out of `marketplace.json` entries (`plugin.json` wins and the validator warns on a mismatch). Check with `claude plugin validate .` and `claude plugin validate plugins/<family>`.
+Each `plugin.json` has its own `version`; bump it with every change to that plugin. When and how: [versioning](versioning.md).
 
 ## A skill folder
 ```
@@ -24,7 +24,7 @@ Each `plugin.json` has its own semver `version` (started at 0.1.0). Bump it in t
 `effort-estimator/` is the exception: scripts and a README, no `SKILL.md`.
 
 ## Adding a skill
-1. Pick a family and create `plugins/<family>/skills/<skill>/` with `SKILL.md` and `README.md`. Bump that plugin's version.
+1. Pick a family and create `plugins/<family>/skills/<skill>/` with `SKILL.md` and `README.md`. Bump that plugin's version ([versioning](versioning.md)).
 2. Add a row to the root [README](../../README.md) and to [skill-map](skill-map.md).
 3. Link it from the READMEs of skills it hands off to or reads from, and link back.
 
